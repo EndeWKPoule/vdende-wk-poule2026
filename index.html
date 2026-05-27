@@ -16,16 +16,32 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Barlow', sans-serif; background: var(--donker); color: var(--licht); min-height: 100vh; }
   .header { background: #111111; border-bottom: 4px solid var(--goud); padding: 0; text-align: center; position: sticky; top: 0; z-index: 100; overflow: hidden; }
-  .header-inner { padding: 14px 20px 12px; position: relative; }
+  .header-inner {
+    padding: 10px 20px 10px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
   .header-inner::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(-45deg, transparent, transparent 18px, rgba(253,191,0,0.04) 18px, rgba(253,191,0,0.04) 20px); pointer-events: none; }
-  .header-logo { height: 56px; width: auto; display: block; margin: 0 auto 8px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6)); }
-  .header-bedrijven { display: flex; justify-content: center; align-items: center; gap: 0; margin-bottom: 4px; flex-wrap: wrap; }
+  .header-logo {
+    height: 72px;
+    width: auto;
+    display: block;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
+  }
+  .header-tekst {
+    flex: 1;
+    text-align: left;
+  }
+  .header-bedrijven { display: flex; justify-content: flex-start; align-items: center; gap: 0; margin-bottom: 4px; flex-wrap: wrap; }
   .header-bedrijf { font-family: 'Barlow Condensed', sans-serif; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; padding: 2px 10px; color: var(--grijs); }
   .header-bedrijf.hoofd { color: var(--goud); font-size: 0.72rem; }
   .header-scheider { color: var(--goud); font-size: 0.8rem; opacity: 0.5; }
-  .header h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--wit); letter-spacing: 4px; text-transform: uppercase; line-height: 1; }
+  .header h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--wit); letter-spacing: 4px; text-transform: uppercase; line-height: 1; text-align: left; }
   .header h1 span { color: var(--goud); }
-  .header p { font-size: 0.72rem; color: var(--grijs); margin-top: 3px; letter-spacing: 1px; text-transform: uppercase; }
+  .header p { font-size: 0.72rem; color: var(--grijs); margin-top: 3px; letter-spacing: 1px; text-transform: uppercase; text-align: left; }
   .nav { display: flex; background: #1a1a1a; border-bottom: 1px solid #2a2a2a; overflow-x: auto; }
   .nav button { flex: 1; min-width: 80px; padding: 12px 8px; background: none; border: none; color: var(--grijs); font-family: 'Barlow Condensed', sans-serif; font-size: 0.9rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
   .nav button.active { color: var(--goud); border-bottom-color: var(--goud); }
@@ -140,6 +156,7 @@
   <div class="header-inner">
     <!-- ✅ FIX: logo pad gecorrigeerd van images/logo/logo.png naar logo.png -->
     <img src="logo.png" alt="L.E. van der Ende" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-tekst">
     <div class="header-bedrijven">
       <span class="header-bedrijf hoofd">L.E. van der Ende Aluminium Constructies</span>
       <span class="header-scheider">·</span>
@@ -149,6 +166,7 @@
     </div>
     <h1>WK <span>POULE</span> 2026</h1>
     <p>Vul je voorspellingen in voor het WK!</p>
+    </div>
   </div>
 </div>
 
