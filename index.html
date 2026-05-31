@@ -176,12 +176,15 @@
     <div class="card">
       <h2>👤 Jouw gegevens</h2>
       <div class="info-box">Deelnemen kost <strong>€ 10,-</strong>. Prijzen: <strong>1e 60%</strong> · <strong>2e 30%</strong> · <strong>3e 10%</strong> van de pot.<br>Inleveren uiterlijk <strong>dinsdag 9 juni</strong>!</div>
+      <div id="alert-herstel" class="alert alert-info" style="display:none;">
+        💾 Je had nog niet-ingezonden gegevens. Deze zijn hersteld! <button onclick="wisOpgeslagen()" style="background:none;border:none;color:#7db0e0;text-decoration:underline;cursor:pointer;font-size:0.9rem;padding:0;margin-left:8px;">Wissen</button>
+      </div>
       <div id="alert-gegevens" class="alert"></div>
-      <div class="form-group"><label>Naam *</label><input type="text" id="inp-naam" placeholder="Voor- en achternaam" autocomplete="name" oninput="verbergAlert('alert-gegevens')"></div>
-      <div class="form-group"><label>Telefoonnummer</label><input type="tel" id="inp-telefoon" placeholder="06-12345678" autocomplete="tel"></div>
+      <div class="form-group"><label>Naam *</label><input type="text" id="inp-naam" placeholder="Voor- en achternaam" autocomplete="name" oninput="verbergAlert('alert-gegevens'); slaGegevensOp()"></div>
+      <div class="form-group"><label>Telefoonnummer</label><input type="tel" id="inp-telefoon" placeholder="06-12345678" autocomplete="tel" oninput="slaGegevensOp()"></div>
       <div class="form-group">
         <label>E-mailadres *</label>
-        <input type="email" id="inp-email" placeholder="naam@email.nl" autocomplete="email" oninput="verbergAlert('alert-gegevens'); emailCheckDebounced()">
+        <input type="email" id="inp-email" placeholder="naam@email.nl" autocomplete="email" oninput="verbergAlert('alert-gegevens'); emailCheckDebounced(); slaGegevensOp()">
         <div id="email-status" style="font-size:0.8rem; margin-top:5px; min-height:18px;"></div>
       </div>
       <button class="btn" id="btn-naar-stap2" onclick="naarStap2()">Volgende: Wedstrijden →</button>
@@ -463,6 +466,7 @@ async function laadWedstrijden() {
 }
 
 function renderWedstrijden() {
+  var _opgeslagen_wedstrijden = JSON.parse(localStorage.getItem(OPSLAAN_KEY) || '{}');
   const container = document.getElementById('wedstrijden-container');
   const perDatum = {};
   wedstrijden.forEach(w => {
@@ -489,6 +493,7 @@ function renderWedstrijden() {
   container.innerHTML = html;
 }
 
+
 function updateVoortgang(id) {
   if (id) {
     const t = document.getElementById('w'+id+'_thuis'), u = document.getElementById('w'+id+'_uit'), rij = document.getElementById('row-'+id);
@@ -502,6 +507,7 @@ function updateVoortgang(id) {
   const totaal = wedstrijden.length, pct = totaal > 0 ? Math.round((ingevuld/totaal)*100) : 0;
   document.getElementById('voortgang-bar').style.width = pct + '%';
   document.getElementById('voortgang-tekst').textContent = ingevuld + ' van ' + totaal + ' ingevuld';
+  slaWedstrijdenOp();
 }
 
 function naarStap3() { naarStap(3); renderSubRonde('r16'); }
@@ -538,7 +544,7 @@ function toggleRondeLand(checkbox, code, land) {
     if (rondeSelectie[code].size >= cfg.max) { checkbox.checked = false; toonAlert('alert-rondes',`⚠️ Je kunt maximaal ${cfg.max} land${cfg.max>1?'en':''} kiezen.`,'warning'); return; }
     rondeSelectie[code].add(land); if (label) label.classList.add('geselecteerd');
   } else { rondeSelectie[code].delete(land); if (label) label.classList.remove('geselecteerd'); }
-  verbergAlert('alert-rondes'); updateTeller(code);
+  verbergAlert('alert-rondes'); updateTeller(code); slaRondesOp_lokaal();
 }
 
 function updateTeller(code) { const el = document.getElementById(RONDE_CONFIG[code].teller); if (el) el.textContent = rondeSelectie[code].size; }
@@ -565,9 +571,10 @@ function renderBonus() {
   let html = '';
   bonusvragen.forEach((v,i) => {
     const id = v.ID||v.id||(i+1), vraag = v.Vraag||v.vraag||v.VRAAG||'';
-    html += `<div class="bonus-item"><div class="bonus-vraag">Vraag ${id}: ${vraag}</div><input type="text" id="b${id}" placeholder="Jouw antwoord..."></div>`;
+    html += `<div class="bonus-item"><div class="bonus-vraag">Vraag ${id}: ${vraag}</div><input type="text" id="b${id}" placeholder="Jouw antwoord..." oninput="slaBonusOp()"></div>`;
   });
   document.getElementById('bonus-container').innerHTML = html;
+  herstelBonus(JSON.parse(localStorage.getItem(OPSLAAN_KEY) || '{}'));
 }
 
 async function verstuurVoorspelling() {
@@ -593,7 +600,7 @@ async function verstuurVoorspelling() {
       document.getElementById('klaar-naam').textContent = naam + '!';
       const email = document.getElementById('inp-email').value.trim();
       if (email) { document.getElementById('klaar-email-adres').textContent = email; document.getElementById('klaar-email-melding').style.display = 'block'; }
-      toonSamenvatting(data); naarStap(5); document.getElementById('stap-indicator').style.display = 'none';
+      wisOpgeslagen(); toonSamenvatting(data); naarStap(5); document.getElementById('stap-indicator').style.display = 'none';
     } else {
       toonAlert('alert-bonus','⚠️ '+(result.fout||'Er ging iets mis. Probeer opnieuw.'),'error');
       btn.disabled=false; btn.textContent='✅ Inzenden!';
@@ -659,7 +666,109 @@ async function laadRanglijst() {
 
 function toonAlert(id, msg, type) { const el=document.getElementById(id); if(!el) return; el.textContent=msg; el.className='alert alert-'+type+' show'; el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
 function verbergAlert(id) { const el=document.getElementById(id); if(!el) return; el.className='alert'; }
+
+// ===================== LOKAAL OPSLAAN =====================
+var OPSLAAN_KEY = 'vde_wk_poule_2026';
+
+function slaGegevensOp() {
+  var opgeslagen = JSON.parse(localStorage.getItem(OPSLAAN_KEY) || '{}');
+  opgeslagen.naam     = document.getElementById('inp-naam')     ? document.getElementById('inp-naam').value     : (opgeslagen.naam     || '');
+  opgeslagen.telefoon = document.getElementById('inp-telefoon') ? document.getElementById('inp-telefoon').value : (opgeslagen.telefoon || '');
+  opgeslagen.email    = document.getElementById('inp-email')    ? document.getElementById('inp-email').value    : (opgeslagen.email    || '');
+  localStorage.setItem(OPSLAAN_KEY, JSON.stringify(opgeslagen));
+}
+
+function slaWedstrijdenOp() {
+  if (wedstrijden.length === 0) return;
+  var opgeslagen = JSON.parse(localStorage.getItem(OPSLAAN_KEY) || '{}');
+  opgeslagen.wedstrijden = {};
+  wedstrijden.forEach(function(w) {
+    var id = w.ID || w.id;
+    var t  = document.getElementById('w' + id + '_thuis');
+    var u  = document.getElementById('w' + id + '_uit');
+    if (t && u) opgeslagen.wedstrijden[id] = { thuis: t.value, uit: u.value };
+  });
+  localStorage.setItem(OPSLAAN_KEY, JSON.stringify(opgeslagen));
+}
+
+function slaRondesOp_lokaal() {
+  var opgeslagen = JSON.parse(localStorage.getItem(OPSLAAN_KEY) || '{}');
+  opgeslagen.rondes = {};
+  Object.keys(rondeSelectie).forEach(function(code) {
+    opgeslagen.rondes[code] = Array.from(rondeSelectie[code]);
+  });
+  localStorage.setItem(OPSLAAN_KEY, JSON.stringify(opgeslagen));
+}
+
+function slaBonusOp() {
+  var opgeslagen = JSON.parse(localStorage.getItem(OPSLAAN_KEY) || '{}');
+  opgeslagen.bonus = {};
+  bonusvragen.forEach(function(v, i) {
+    var id = v.ID || v.id || (i + 1);
+    var el = document.getElementById('b' + id);
+    if (el) opgeslagen.bonus[id] = el.value;
+  });
+  localStorage.setItem(OPSLAAN_KEY, JSON.stringify(opgeslagen));
+}
+
+function herstelOpgeslagen() {
+  var opgeslagen = JSON.parse(localStorage.getItem(OPSLAAN_KEY) || '{}');
+  if (!opgeslagen.naam && !opgeslagen.email) return; // Niets opgeslagen
+
+  // Gegevens herstellen
+  if (opgeslagen.naam     && document.getElementById('inp-naam'))     document.getElementById('inp-naam').value     = opgeslagen.naam;
+  if (opgeslagen.telefoon && document.getElementById('inp-telefoon')) document.getElementById('inp-telefoon').value = opgeslagen.telefoon;
+  if (opgeslagen.email    && document.getElementById('inp-email'))    document.getElementById('inp-email').value    = opgeslagen.email;
+
+  // Melding tonen
+  var el = document.getElementById('alert-herstel');
+  if (el) el.style.display = 'block';
+}
+
+function herstelWedstrijden(opgeslagen) {
+  if (!opgeslagen || !opgeslagen.wedstrijden) return;
+  wedstrijden.forEach(function(w) {
+    var id = w.ID || w.id;
+    var t  = document.getElementById('w' + id + '_thuis');
+    var u  = document.getElementById('w' + id + '_uit');
+    var d  = opgeslagen.wedstrijden[id];
+    if (t && u && d) {
+      if (d.thuis !== '') { t.value = d.thuis; }
+      if (d.uit   !== '') { u.value = d.uit;   }
+      if (d.thuis !== '' && d.uit !== '') {
+        updateVoortgang(id);
+      }
+    }
+  });
+}
+
+function herstelRondes(opgeslagen) {
+  if (!opgeslagen || !opgeslagen.rondes) return;
+  Object.keys(opgeslagen.rondes).forEach(function(code) {
+    if (rondeSelectie[code]) {
+      rondeSelectie[code] = new Set(opgeslagen.rondes[code]);
+    }
+  });
+}
+
+function herstelBonus(opgeslagen) {
+  if (!opgeslagen || !opgeslagen.bonus) return;
+  bonusvragen.forEach(function(v, i) {
+    var id = v.ID || v.id || (i + 1);
+    var el = document.getElementById('b' + id);
+    if (el && opgeslagen.bonus[id] !== undefined) el.value = opgeslagen.bonus[id];
+  });
+}
+
+function wisOpgeslagen() {
+  localStorage.removeItem(OPSLAAN_KEY);
+  var el = document.getElementById('alert-herstel');
+  if (el) el.style.display = 'none';
+}
+
 updateStapIndicator(1);
+herstelOpgeslagen();
+herstelRondes(JSON.parse(localStorage.getItem(OPSLAAN_KEY) || '{}'));
 </script>
 </body>
 </html>
